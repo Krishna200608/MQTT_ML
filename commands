@@ -30,3 +30,13 @@ python predict.py
 
 ---run Mosquitoo
 mosquitto -v
+
+---Capture benign traffic using script
+-- 1) generate ( run in 2-3 terminals)
+        python .\scripts\mqtt_simulator.py --client device_A --rate 1.0
+        python .\scripts\mqtt_simulator.py --client device_B --rate 1.0
+        python .\scripts\mqtt_simulator.py --client device_C --rate 1.0
+---2) capture them using tshark
+        tshark -i 6 -f "tcp port 1883 or udp port 1883" -a duration:60 -w .\captures\benign_mqtt.pcap
+
+
