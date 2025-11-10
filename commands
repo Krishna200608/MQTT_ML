@@ -26,3 +26,7 @@ python classification.py --mode 0 --output Packet_Results --verbose True
 
 4)Predict
 python predict.py
+
+
+---run Mosquitoo
+mosquitto -v
