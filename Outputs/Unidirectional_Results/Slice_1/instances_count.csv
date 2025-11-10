@@ -1,0 +1,16 @@
+all, datasets\uniflow_features\uniflow_normal.csv, 171836 
+processed, datasets\uniflow_features\uniflow_normal.csv, 171836 
+Start, 17183, End, 34365 
+slice, datasets\uniflow_features\uniflow_normal.csv, 17182 
+all, datasets\uniflow_features\uniflow_scan_A.csv, 39797 
+processed, datasets\uniflow_features\uniflow_scan_A.csv, 39797 
+slice, datasets\uniflow_features\uniflow_scan_A.csv, 39797 
+all, datasets\uniflow_features\uniflow_scan_sU.csv, 22436 
+processed, datasets\uniflow_features\uniflow_scan_sU.csv, 22436 
+slice, datasets\uniflow_features\uniflow_scan_sU.csv, 22436 
+all, datasets\uniflow_features\uniflow_sparta.csv, 28232 
+processed, datasets\uniflow_features\uniflow_sparta.csv, 28232 
+slice, datasets\uniflow_features\uniflow_sparta.csv, 28232 
+all, datasets\uniflow_features\uniflow_mqtt_bruteforce.csv, 28874 
+processed, datasets\uniflow_features\uniflow_mqtt_bruteforce.csv, 28874 
+slice, datasets\uniflow_features\uniflow_mqtt_bruteforce.csv, 28874 

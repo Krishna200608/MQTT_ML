@@ -1,0 +1,16 @@
+all, datasets\biflow_features\biflow_normal.csv, 86008 
+processed, datasets\biflow_features\biflow_normal.csv, 86008 
+Start, 51600, End, 60199 
+slice, datasets\biflow_features\biflow_normal.csv, 8599 
+all, datasets\biflow_features\biflow_scan_A.csv, 19907 
+processed, datasets\biflow_features\biflow_scan_A.csv, 19907 
+slice, datasets\biflow_features\biflow_scan_A.csv, 19907 
+all, datasets\biflow_features\biflow_scan_sU.csv, 22434 
+processed, datasets\biflow_features\biflow_scan_sU.csv, 22434 
+slice, datasets\biflow_features\biflow_scan_sU.csv, 22434 
+all, datasets\biflow_features\biflow_sparta.csv, 14116 
+processed, datasets\biflow_features\biflow_sparta.csv, 14116 
+slice, datasets\biflow_features\biflow_sparta.csv, 14116 
+all, datasets\biflow_features\biflow_mqtt_bruteforce.csv, 14544 
+processed, datasets\biflow_features\biflow_mqtt_bruteforce.csv, 14544 
+slice, datasets\biflow_features\biflow_mqtt_bruteforce.csv, 14544 

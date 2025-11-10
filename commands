@@ -1,0 +1,28 @@
+1)Navigate to folder
+D:
+cd Research\Code\MQTT_ML
+
+
+2)Create the env
+conda create -n mqtt_ids python=3.12 -y
+
+3)activate the env
+conda activate mqtt_ids
+
+4)install dependecies (if not installed)
+pip install numpy pandas scikit-learn matplotlib tqdm joblib
+
+
+MAIN COMMANDS
+
+1) Biflow features
+python classification.py --mode 2 --output Bidirectional_Results --verbose True
+
+2)Uniflow features
+python classification.py --mode 1 --output Unidirectional_Results --verbose True
+
+3)Packet features
+python classification.py --mode 0 --output Packet_Results --verbose True
+
+4)Predict
+python predict.py
