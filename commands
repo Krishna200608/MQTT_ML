@@ -36,7 +36,30 @@ mosquitto -v
         python .\scripts\mqtt_simulator.py --client device_A --rate 1.0
         python .\scripts\mqtt_simulator.py --client device_B --rate 1.0
         python .\scripts\mqtt_simulator.py --client device_C --rate 1.0
----2) capture them using tshark
-        tshark -i 6 -f "tcp port 1883 or udp port 1883" -a duration:60 -w .\captures\benign_mqtt.pcap
+---2) capture them using tshark (benign traffic)
+         -> with duration 60s
+                tshark -i 6 -f "tcp port 1883 or udp port 1883" -a duration:60 -F pcap -w .\captures\benign_mqtt.pcap
+         -> without
+                tshark -i 6 -f "tcp port 1883 or udp port 1883" -F pcap -w .\captures\benign_mqtt.pcap
+         -> 1000 packets
+                tshark -i 6 -f "tcp port 1883 or udp port 1883" -c 1000 -F pcap -w .\captures\benign_mqtt.pcap
+--3) capture attack traffic
+        tshark -i 6 -s 0 -f "tcp port 1883 or udp port 1883" -a duration:120 -F pcap -w .\captures\attack_mqtt.pcap
+        tshark -i 6 -s 0 -f "tcp port 1883 or udp port 1883" -c 1000 -F pcap -w .\captures\attack_mqtt.pcap
+        tshark -i 6 -f "tcp port 1883 or udp port 1883" -F pcap -F pcap -w .\captures\attack_mqtt.pcap
+
+        1)A — Nmap TCP scan (basic scan attack)
+            nmap -p 1883 127.0.0.1
+            # To run a faster aggressive scan
+            nmap -T4 -p 1883 127.0.0.1
+        2)B — Nmap UDP scan
+            nmap -sU -p 1883 127.0.0.1
+        3)python .\scripts\mqtt_bruteforce_sim.py
+
+--4) convert to csv
+    python .\scripts\pcap_parser.py .\captures\benign_mqtt.pcap
+    python .\scripts\pcap_parser.py .\captures\attack_mqtt.pcap
+
+
 
 

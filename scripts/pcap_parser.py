@@ -49,10 +49,24 @@ packet_dict = {'pkt_num': pkt_num_list,
 #f = open('normal_operation.pcap', 'rb')
 sliding_window = False
 
+import os
+
+# Create output directory for CSVs
+csv_output_dir = "./captures/csv/"
+os.makedirs(csv_output_dir, exist_ok=True)
+
+
 if len(sys.argv) > 1:
     print(sys.argv[1])
     f = open(sys.argv[1], 'rb')
-    output_file = sys.argv[1].replace(".pcap", "_WithWindowing.csv")
+    
+    # Extract filename only (remove directory)
+    base_name = os.path.basename(sys.argv[1])
+    
+    # Build output file name cleanly
+    pcap_name = base_name.replace(".pcap", "")  # just name without extension
+    output_file = pcap_name + ".csv"  # temporary, will not be used directly
+
 else:
     f = open('bruteforce.pcap', 'rb')
     output_file = 'bruteforce.csv'
@@ -72,78 +86,117 @@ udpcount=0
 tcpcount=0
 unknown_transport_layer = 0
 
+# Detect link-layer type once
+try:
+    datalink = pcap.datalink()  # dpkt.pcap.* DLT_* constants
+except AttributeError:
+    datalink = dpkt.pcap.DLT_EN10MB  # sane default
+
 for ts, buf in pcap:
 
     if count == 1:
+        # keep your original behavior
         global_t0 = datetime.datetime.utcfromtimestamp(ts)
 
     if (count > 0):
-        
+
+        # ---- L2 decode (Ethernet / Loopback / Raw IP) ----
+        l3 = None
+        ip_len_field = None
+
         try:
-            eth = dpkt.ethernet.Ethernet(buf)
+            if datalink == dpkt.pcap.DLT_EN10MB:
+                # Ethernet
+                eth = dpkt.ethernet.Ethernet(buf)
+                if not isinstance(eth.data, dpkt.ip.IP):
+                    l2count += 1
+                    count += 1
+                    continue
+                l3 = eth.data
+                ip_len_field = len(eth.data)
+
+            elif datalink in (dpkt.pcap.DLT_NULL, getattr(dpkt.pcap, "DLT_LOOP", 12)):
+                # Loopback/Null (Npcap Loopback uses this)
+                lb = dpkt.loopback.Loopback(buf)
+                if not isinstance(lb.data, (dpkt.ip.IP, dpkt.ip6.IP6)):
+                    l2count += 1
+                    count += 1
+                    continue
+                l3 = lb.data
+                ip_len_field = len(lb.data)
+
+            elif datalink == getattr(dpkt.pcap, "DLT_RAW", 101):
+                # Raw IP (no L2 header)
+                try:
+                    l3 = dpkt.ip.IP(buf)
+                except (dpkt.dpkt.NeedData, dpkt.dpkt.UnpackError):
+                    try:
+                        l3 = dpkt.ip6.IP6(buf)
+                    except (dpkt.dpkt.NeedData, dpkt.dpkt.UnpackError):
+                        l2count += 1
+                        count += 1
+                        continue
+                ip_len_field = len(l3)
+
+            else:
+                # Unsupported L2 for this script
+                l2count += 1
+                count += 1
+                continue
+
         except (dpkt.dpkt.NeedData, dpkt.dpkt.UnpackError):
-            print(f"Could not unpack Ethernet frame {count}, skipping.")
+            # Could not parse L2
             l2count += 1
+            count += 1
             continue
 
-        if not isinstance(eth.data, dpkt.ip.IP):
-            #print('Non IP Packet type not supported %s\n' % eth.data.__class__.__name__)
-            l2count+=1
-            continue
-        l3 = eth.data
+        # ---- L3/L4 filtering ----
         if isinstance(l3.data, dpkt.icmp.ICMP):
-            icmpcount+=1
-            #print("ICMP Packet disarded")
+            icmpcount += 1
+            count += 1
             continue
-        
+
         if isinstance(l3.data, dpkt.igmp.IGMP):
-            igmpcount+=1
+            igmpcount += 1
+            count += 1
             continue
-        
-        ###### If packet is icmp then continue
-        
-        
-        
-        #print(l3)
+
         l4 = l3.data
-        
-        if not isinstance(l4, dpkt.tcp.TCP) and not isinstance(l4, dpkt.udp.UDP):
+        if not isinstance(l4, (dpkt.tcp.TCP, dpkt.udp.UDP)):
             unknown_transport_layer += 1
+            count += 1
             continue
-        
+
+        # ---- Record fields ----
         pkt_num_list.append(count)
         time_list.append(ts)
         ip_src_list.append(inet_to_str(l3.src))
         ip_dst_list.append(inet_to_str(l3.dst))
-        ip_len_list.append(len(eth.data))
-        #ip_tos_list.append(l3.tos)
+        ip_len_list.append(ip_len_field)
 
         if isinstance(l4, dpkt.tcp.TCP):
-            tcpcount+=1
+            tcpcount += 1
             proto_list.append('TCP')
             prt_src_list.append(l4.sport)
             prt_dst_list.append(l4.dport)
-            #syn_flag = ( l4.flags & dpkt.tcp.TH_SYN ) != 0
-            rst_flag = ( l4.flags & dpkt.tcp.TH_RST ) != 0
-            psh_flag = ( l4.flags & dpkt.tcp.TH_PUSH) != 0
-            #ack_flag = ( l4.flags & dpkt.tcp.TH_ACK ) != 0
-            urg_flag = ( l4.flags & dpkt.tcp.TH_URG ) != 0
+            rst_flag = (l4.flags & dpkt.tcp.TH_RST) != 0
+            psh_flag = (l4.flags & dpkt.tcp.TH_PUSH) != 0
+            urg_flag = (l4.flags & dpkt.tcp.TH_URG) != 0
             tcp_psh_flag_list.append(psh_flag)
             tcp_rst_flag_list.append(rst_flag)
             tcp_urg_flag_list.append(urg_flag)
 
-
-
-        if isinstance(l4, dpkt.udp.UDP):
-            udpcount+=1
+        elif isinstance(l4, dpkt.udp.UDP):
+            udpcount += 1
             proto_list.append('UDP')
             prt_src_list.append(l4.sport)
             prt_dst_list.append(l4.dport)
-            # Need to add a value to these to maintain consistent rows across lists - will add zeros
+            # keep columns aligned for UDP
             tcp_psh_flag_list.append(False)
             tcp_rst_flag_list.append(False)
             tcp_urg_flag_list.append(False)
-    count+=1
+
+    count += 1
 
 print("L2 packets dicarded = ", l2count)
 print("ICMP packets dicarded = ", icmpcount)
@@ -380,7 +433,8 @@ if output_uniflows_separately:
     # --- END PANDAS 2.0 FIX 1 ---
     
     #feature_df.to_csv('robert_stealth.csv', sep=',') 
-    feature_df.to_csv('uniflow_' + output_file, sep=',') 
+    feature_df.to_csv(os.path.join(csv_output_dir, f"uniflow_{pcap_name}.csv"), index=False)
+
 
 print('\nAll uniflows processed')
 
@@ -578,7 +632,7 @@ else:
     print("No biflows were generated.")
 
 
-df_biflow.to_csv('biflow_' + output_file, sep=',') 
+df_biflow.to_csv(os.path.join(csv_output_dir, f"biflow_{pcap_name}.csv"), index=False)
 
 
 
